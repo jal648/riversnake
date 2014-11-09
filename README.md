@@ -1,4 +1,5 @@
-# Riversnake - Simple Python workflows on Mesos
+# Riversnake 
+## Simple Python workflows on Mesos
 
 Riversnake is a minimal framework for creating a workflow on Apache Mesos.  
 
