@@ -1,3 +1,5 @@
+from operator import itemgetter
+
 __author__ = 'jleslie'
 import os
 os.environ['RIVERSNAKE_ZOOKEEPER_HOSTS'] = '10.141.141.10:2181'
@@ -5,8 +7,8 @@ os.environ['RIVERSNAKE_ZOOKEEPER_HOSTS'] = '10.141.141.10:2181'
 import unittest
 from hamcrest import *
 
-import zoodict
-from zoodict import ZooDict
+from riversnake.zoodict import ZooDict
+import riversnake.zoodict as zoodict
 
 class Test(unittest.TestCase):
 
@@ -56,4 +58,23 @@ class Test(unittest.TestCase):
 
 
 
+    def test_Can_iterate_item_tuples_similar_to_a_dict(self):
 
+        with ZooDict() as zd:
+            stored_data = dict(a=1, b=2)
+            zd.set('key1', dict(a=1))
+            zd.set('key2', dict(a=2))
+            zd.set('key3', dict(a=3))
+
+            all_items = zd.items()
+            assert_that(all_items, has_length(3), "Should be three stored values")
+
+            all_keys = map(itemgetter(0), all_items)
+            assert_that(all_keys, contains_inanyorder('key1', 'key2', 'key3'), "Should contain all keys")
+
+            all_values  = map(itemgetter(1), all_items)
+            assert_that(all_values, contains_inanyorder(
+                has_entries(a=1),
+                has_entries(a=2),
+                has_entries(a=3),
+            ))

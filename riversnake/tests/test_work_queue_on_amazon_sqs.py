@@ -1,7 +1,7 @@
 from hamcrest import *
 import unittest
 import uuid
-import work_queue
+import riversnake.work_queue as work_queue
 
 __author__ = 'jleslie'
 

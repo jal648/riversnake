@@ -13,6 +13,17 @@ import os
 zk_hosts = os.environ.get('RIVERSNAKE_ZOOKEEPER_HOSTS') or "127.0.0.1:2181"
 default_path_root = os.environ.get('RIVERSNAKE_ZOODICT_ROOT') or "/zoodict"
 
+def find_marathon_master():
+    import socket
+    import urlparse
+
+    with ZooDict() as zd:
+        zk = zd.zk
+        child = zk.get_children('/marathon/leader')[0]
+        data = zk.get('/marathon/leader/' + child)[0]
+        hostname, sock = data.split(':')
+        return socket.gethostbyname(hostname) + ':' + sock
+
 class ZooDict(object):
 
     def __init__(self, path_root=None):
@@ -45,7 +56,11 @@ class ZooDict(object):
         self.zk.ensure_path(self.path_root + '/' + key)
         self.zk.set(self.path_root + '/' + key, json.dumps(data_dict))
 
+    def delete(self, key):
+        self.zk.delete(self.path_root + '/' + key)
 
+    def items(self):
+        return [ (child, self.get(child)) for child in self.zk.get_children(self.path_root) ]
 
 class MockZooDictForTesting(ZooDict):
 

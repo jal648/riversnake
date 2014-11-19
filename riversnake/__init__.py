@@ -1,14 +1,8 @@
-from boto.sqs.message import Message
 import time
 
 __author__ = 'jleslie'
 
-import boto.sqs
-import json
 import rslogger as log
-from dfdb import mongo_bsdev, mong_upsert
-
-from zoodict import ZooDict
 
 
 def _import_class(class_string):
@@ -47,8 +41,9 @@ class TaskInvoker(object):
     Read message, give message to task, if no exceptions, delete message.
     """
 
-    def __init__(self, task_name, deployed_task_chain):
-        self.task_name = task_name
+    def __init__(self, task_id, deployed_task_chain):
+        self.task_id = task_id
+        task_name = deployed_task_chain.get_task_data(task_id)['task']
         self.task = _import_class(task_name)()
         self.deployed_task_chain = deployed_task_chain
 
@@ -58,13 +53,13 @@ class TaskInvoker(object):
         return data_dict
 
     def poll(self, wait_time_seconds=20):
-        log.debug('[task:%s] polling', self.task_name)
+        log.debug('[task:%s] polling', self.task_id)
 
-        m = self.deployed_task_chain.get_input_queue(self.task_name).read(wait_time_seconds=wait_time_seconds)
+        m = self.deployed_task_chain.get_input_queue(self.task_id).read(wait_time_seconds=wait_time_seconds)
 
         if m:
             try:
-                log.debug('[task:%s] found message', self.task_name)
+                log.debug('[task:%s] found message', self.task_id)
 
                 result = self.task.run(**m)
 
@@ -99,17 +94,18 @@ class TaskInvoker(object):
                     else:
                         for data_dict, status in result:
                             data_dict = self._convert_file_handles_to_hdfs(data_dict)
-                            out_queue = self.deployed_task_chain.get_output_queue(self.task_name, status)
+                            out_queue = self.deployed_task_chain.get_output_queue(self.task_id, status)
                             if out_queue:
                                 out_queue.write(data_dict)
 
                             else:
-                                print "no next queue found for ", self.task_name, status
+                                print "no next queue found for ", self.task_id, status
 
         return True
 
     def run(self):
         while self.poll():
+            time.sleep(10)
             pass
 
 
